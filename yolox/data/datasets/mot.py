@@ -38,6 +38,7 @@ class MOTDataset(Dataset):
 
         self.coco = COCO(os.path.join(self.data_dir, "annotations", self.json_file))
         self.ids = self.coco.getImgIds()
+        self.ids = [self.ids]
         self.class_ids = sorted(self.coco.getCatIds())
         cats = self.coco.loadCats(self.coco.getCatIds())
         self._classes = tuple([c["name"] for c in cats])
@@ -56,10 +57,14 @@ class MOTDataset(Dataset):
         im_ann = self.coco.loadImgs(id_)[0]
         width = im_ann["width"]
         height = im_ann["height"]
-        frame_id = im_ann["frame_id"]
-        video_id = im_ann["video_id"]
-        anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
+        # frame_id = im_ann["frame_id"]
+        frame_id = im_ann["id"]
+        # video_id = im_ann["video_id"]
+        video_id = 0
+        # anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
+        anno_ids = self.coco.getAnnIds(imgIds=id_, iscrowd=False)
         annotations = self.coco.loadAnns(anno_ids)
+
         objs = []
         for obj in annotations:
             x1 = obj["bbox"][0]
@@ -78,7 +83,8 @@ class MOTDataset(Dataset):
             cls = self.class_ids.index(obj["category_id"])
             res[ix, 0:4] = obj["clean_bbox"]
             res[ix, 4] = cls
-            res[ix, 5] = obj["track_id"]
+            # res[ix, 5] = obj["track_id"]
+            res[ix, 5] = -1
 
         file_name = im_ann["file_name"] if "file_name" in im_ann else "{:012}".format(id_) + ".jpg"
         img_info = (height, width, frame_id, video_id, file_name)
@@ -129,4 +135,7 @@ class MOTDataset(Dataset):
 
         if self.preproc is not None:
             img, target = self.preproc(img, target, self.input_dim)
+
+        # print(img, target, img_info, img_id)
+
         return img, target, img_info, img_id
